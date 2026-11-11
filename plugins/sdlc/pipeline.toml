@@ -1,0 +1,24 @@
+# The default pipeline: the skills that run in each step of each stage.
+# Entries are skill names exactly as they are invoked, such as "sdlc:plan-write".
+# Layers and projects edit these lists; see scripts/resolve_pipeline.py for the format.
+#
+# Every step is empty until its skills exist. A test fails when an entry here
+# names a core skill that has no SKILL.md.
+
+[intent]
+start = []
+do = []
+review = []
+finish = []
+
+[spec]
+start = []
+do = []
+review = []
+finish = []
+
+[build]
+start = []
+do = []
+review = []
+finish = []

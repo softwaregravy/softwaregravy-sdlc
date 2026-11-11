@@ -1,6 +1,6 @@
 # softwaregravy-sdlc: overall plan
 
-Approved by the owner on 2026-11-11. Phase 1 is in progress.
+Approved by the owner on 2026-11-11. Phase 1 is in progress: the walking skeleton is built, and section 11 lists what it showed and what is still untried.
 
 ## 1. Goal
 
@@ -149,7 +149,8 @@ softwaregravy-sdlc/
 ├── plugins/
 │   └── sdlc/                         # the core plugin
 │       ├── .claude-plugin/plugin.json
-│       ├── pipeline                  # the default manifest: which skills run in each step (4.4)
+│       ├── pipeline.toml             # the default manifest: which skills run in each step (4.4)
+│       ├── scripts/                  # the manifest resolver
 │       ├── skills/                   # one folder per skill, scripts inside
 │       ├── agents/                   # reviewer agents
 │       ├── hooks/                    # session-start context; guards later
@@ -163,7 +164,7 @@ softwaregravy-sdlc/
 ├── CLAUDE.md  README.md  LICENSE
 ```
 
-Stack layers appear under `plugins/` as they are first needed, for example `sdlc-ruby`, `sdlc-rails`, `sdlc-render`, and `sdlc-rails-render` for a combination. Each has the same shape as the core and declares what it depends on, so enabling `sdlc-rails` also enables `sdlc-ruby` and `sdlc`.
+Stack layers appear under `plugins/` as they are first needed, for example `sdlc-ruby`, `sdlc-rails`, `sdlc-render`, and `sdlc-rails-render` for a combination. Each has the same shape as the core and declares what it depends on.
 
 ### 4.1 What a layer holds, and where a rule goes
 
@@ -187,12 +188,17 @@ Precedence: the project, then the most specific layer, then the core.
     }
   },
   "enabledPlugins": {
+    "sdlc@softwaregravy-sdlc": true,
+    "sdlc-ruby@softwaregravy-sdlc": true,
     "sdlc-rails@softwaregravy-sdlc": true
   }
 }
 ```
 
 That file and a product-only `CLAUDE.md` are the whole required footprint.
+
+- **The file lists every plugin, including the ones a layer depends on.** A file that names only the layer loads nothing: Claude Code reports the dependency as not installed. `claude plugin install <layer> --scope project` writes the full list, and `/sdlc:adopt` will do the same.
+- **Each machine registers the marketplace once per project.** A session started with no terminal did not load a marketplace the machine had never seen, even though the project's settings named it. One command fixes that: `claude plugin marketplace add <source> --scope local`, run in the project. It writes the untracked `.claude/settings.local.json`.
 
 Because nothing is enabled at user level, the skills exist only inside a repo that has opted in. Two consequences:
 
@@ -201,30 +207,42 @@ Because nothing is enabled at user level, the skills exist only inside a repo th
 
 ### 4.3 Editing skills as we go
 
-On a machine with a clone, the marketplace is added from the local path. Claude Code then reads the plugin files in place, so an edit takes effect at the next session or on `/reload-plugins`, with no publish step. Machines without a clone get the copy on GitHub's default branch.
+On a machine with a clone, the per-project registration in 4.2 names the clone's path as the source. Claude Code then reads the plugin files in place, so an edit takes effect at the next session or on `/reload-plugins`, with no publish step. The local registration overrides the GitHub source in the project's tracked settings and leaves that file untouched. Machines without a clone register the GitHub source and get the copy on its default branch.
 
 ### 4.4 The pipeline manifest
 
 The manifest is the one place that says which skills make up each stage. For each stage and step it lists the skills that run, in order:
 
-```
-build:
-  start:   [plan-write, review-plan]
-  do:      [implement, tdd, verify, docs-update]
-  review:  [review-standards, review-against-spec]
-  finish:  [pr-open]
+```toml
+# plugins/sdlc/pipeline.toml: an array sets a step's whole list
+[build]
+start  = ["sdlc:plan-write", "sdlc:review-plan"]
+do     = ["sdlc:implement", "sdlc:tdd", "sdlc:verify", "sdlc:docs-update"]
+review = ["sdlc:review-standards", "sdlc:review-against-spec"]
+finish = ["sdlc:pr-open"]
 ```
 
-- **The core ships the default manifest.**
-- **A layer adds entries.** A Rails layer could add a migration reviewer to `build.review`.
-- **A project overrides.** Files under `.sdlc/` in the project add a rule to a stage, add a skill of the project's own, replace an entry, or drop a step.
-- **Entries can name skills from elsewhere:** a Claude Code built-in such as `security-review`, or a skill from another installed plugin.
+```toml
+# <project>/.sdlc/pipeline.toml: a table edits the inherited list
+[build.review]
+remove  = ["sdlc:review-standards"]
+add     = ["security-review"]
+replace = { "sdlc:review-against-spec" = "strict-spec-review" }
+```
+
+- **The core ships the default manifest**, `pipeline.toml` at the plugin root. Every step is empty until its skills exist.
+- **A layer adds entries** in its own `pipeline.toml`. A Rails layer could add a migration reviewer to `build.review`.
+- **A project overrides** in `.sdlc/pipeline.toml`: it adds a skill of its own, replaces an entry, removes one, or empties a step.
+- **Entries are skill names exactly as they are invoked**, so they can name skills from elsewhere: a Claude Code built-in such as `security-review`, or a skill from another installed plugin.
+- **Removing or replacing an entry that is not there is an error.** An override cannot silently stop applying when the skill it names is renamed upstream.
 - **Every reviewer gets a turn.** The review step runs each listed reviewer in a fresh context. All report findings in one common format (severity, location, claim, evidence). The findings are then merged, re-graded and fixed in one pass.
 - **Small shared skills** such as `pr-open` and `pr-respond` are written once and listed wherever they are used.
 
-A small script resolves core, layers and project into the effective pipeline, so the result does not depend on a model reading several files correctly. `/sdlc:pipeline` prints the effective pipeline for the current repo and says where each entry came from.
+A small script, `scripts/resolve_pipeline.py`, resolves core, layers and project into the effective pipeline, so the result does not depend on a model reading several files correctly. It applies each plugin after the plugins it depends on, then the project. `/sdlc:pipeline` prints the effective pipeline for the current repo and says where each entry came from.
 
-The file format, and how the script finds each enabled layer's manifest, are settled in phase 1.
+The script finds the layers through the session: each SDLC plugin's session-start hook prints its name and root, and the skill passes those roots to the script. Only enabled plugins run their hooks, so Claude Code decides which layers are active.
+
+Still to add in phase 2: per-stage rule files under `.sdlc/`, for a project that wants to add a rule to a stage without writing a skill.
 
 ## 5. Commands and skills, version 0
 
@@ -277,7 +295,7 @@ Deferred until an issue asks for them: the subagent executor, git worktree handl
 | Always-on instructions | Yes, the core's `context.md` | |
 | Hooks that block a PR with a non-default base, a push to the default branch, or a merge | No | Yes |
 | Commands triggered automatically | No; the owner types them | Yes |
-| This repo's own CI | `claude plugin validate --strict` | `claude plugin eval` on the skills |
+| This repo's own CI | The resolver's tests and `claude plugin validate`. Not `--strict`, which fails on the `version` field this repo leaves out on purpose | `claude plugin eval` on the skills |
 
 Two ways to trigger commands automatically, to be chosen in phase 6:
 
@@ -328,24 +346,34 @@ These are easy to change:
 3. **`.sdlc/`** as the folder for a project's pipeline overrides.
 4. **Skill names** in 5.2.
 
-## 11. To verify in phase 1
+## 11. Phase 1 findings
 
-These come from the Claude Code docs or from other plugins and have not been tried.
+Tried on 2026-11-11 with Claude Code 2.1.311 on Linux, in non-interactive sessions (`claude -p`), against a throwaway marketplace on local disk that held the core and a dummy layer.
 
-- A project's `.claude/settings.json` can register the marketplace and enable plugins for anyone who opens the repo, and what prompt that shows.
-- Enabling a layer plugin enables the plugins it depends on.
-- A marketplace added from a local path and the same marketplace named in project settings coexist, and which one wins.
-- With no `version` set, a merge to the default branch reaches projects on the next marketplace update.
-- A plugin's session-start hook injects context in a session launched by a service, with no terminal.
-- Cloud sessions can install from the public marketplace.
-- The resolver script can find the manifest of every enabled layer.
-- A manifest entry can name a built-in skill or another plugin's skill, and the stage can invoke it.
+| Question | Result |
+|---|---|
+| Does a plugin's session-start hook inject context? | Yes. Whatever the hook prints becomes context, for the core and the layer alike |
+| Can a project's `.claude/settings.json` enable the plugins? | Yes, once the machine knows the marketplace (4.2). A machine that had never seen it loaded nothing |
+| Does enabling a layer enable what it depends on? | Only through `claude plugin install`, which writes every plugin into the file. A hand-written file naming only the layer loaded nothing |
+| Do a local-path registration and the project's settings coexist? | Yes. The local one wins and the tracked file is untouched |
+| Do edits to a local-path marketplace take effect without a reinstall? | Yes, at the next session |
+| Can the resolver find every enabled layer's manifest? | Yes, through the session-start announcements. `/sdlc:pipeline` printed the core, the dummy layer's entry and the dummy project's overrides, each with its source |
+
+Not yet tried:
+
+- The same checks against the GitHub source. They need the marketplace file on the default branch.
+- With no `version` set, whether a merge to the default branch reaches projects on the next marketplace update.
+- What an interactive session shows when it opens a project whose marketplace the machine has not seen.
+- A session launched by a service, a cloud session, and macOS. The resolver needs Python 3.11 or later, and macOS ships an older system Python.
+- A stage invoking a manifest entry that names a built-in skill or another plugin's skill. There are no stage commands yet.
+
+To settle in phase 2: a skill with `disable-model-invocation` can be run only by a person typing its name, so a stage command cannot invoke it. Step skills must either stay model-invocable, which costs a line of context each in every session, or be plain files that the stage command reads.
 
 To verify in phase 6: `claude-code-action` can load plugins from this marketplace.
 
 ## 12. Risks
 
-- **The manifest is the least proven part.** If resolving it across plugins turns out to be awkward, the fallback is a naming convention plus a project deny list.
+- **The manifest works on one machine in one mode.** It rests on the session relaying each plugin's root to the resolver. If that proves unreliable, the fallback is a naming convention plus a project deny list.
 - **Volume of vendored text.** superpowers alone is about 11,000 lines. Version 0 takes a small cluster and trims it.
 - **Session-start bloat.** Every layer adds always-on text. Each `context.md` stays to a few lines; `claude plugin details` reports the token cost.
 - **Upstream drift.** Vendored skills stop receiving upstream fixes. `THIRD_PARTY.md` records the commit so a later comparison is possible.

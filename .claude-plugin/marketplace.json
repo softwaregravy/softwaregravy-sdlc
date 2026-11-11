@@ -1,0 +1,14 @@
+{
+  "name": "softwaregravy-sdlc",
+  "description": "A software development lifecycle as Claude Code skills: issue to intent to spec to reviewed pull request",
+  "owner": {
+    "name": "softwaregravy"
+  },
+  "plugins": [
+    {
+      "name": "sdlc",
+      "source": "./plugins/sdlc",
+      "description": "The core pipeline: stages, pull request rules and repo setup. Every stack layer depends on it"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# SessionStart hook: announce this plugin and print its always-on rules.
+# Whatever this prints becomes session context. The "Plugin root" line is how
+# the pipeline resolver learns where each active SDLC plugin lives, so every
+# layer's hook prints the same two lines with its own name.
+set -euo pipefail
+
+root="${CLAUDE_PLUGIN_ROOT:?session-start must run as a plugin hook}"
+
+printf 'SDLC plugin active: sdlc\nPlugin root: %s\n\n' "$root"
+cat "$root/context.md"

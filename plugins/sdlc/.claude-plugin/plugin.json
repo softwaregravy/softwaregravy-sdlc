@@ -1,0 +1,9 @@
+{
+  "name": "sdlc",
+  "description": "The core pipeline: stages, pull request rules and repo setup. Every stack layer depends on it",
+  "author": {
+    "name": "softwaregravy"
+  },
+  "repository": "https://github.com/softwaregravy/softwaregravy-sdlc",
+  "license": "MIT"
+}
