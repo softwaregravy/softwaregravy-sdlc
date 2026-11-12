@@ -15,7 +15,7 @@ The model is Anthropic's AI-native SDLC playbook (https://claude.com/resources/a
 | Decision | Choice |
 |---|---|
 | Distribution | The repo is a Claude Code plugin marketplace. Projects enable plugins in their checked-in `.claude/settings.json` |
-| Opt-in | Per repo only. Nothing is enabled at user level, so there is one copy of the rules and nothing to keep in sync |
+| Opt-in | Per repo. Each machine installs the plugins once and leaves them switched off; a repo's settings switch them on. Nothing is enabled at user level, so there is one copy of the rules and nothing to keep in sync |
 | Dependency direction | This repo stands alone and names no other repo of the owner's. Other repos may reference it |
 | Third-party skills | Vendored with attribution when we want to edit them; referenced by name from the pipeline manifest when we don't |
 | Artifact names | The playbook's: `intent.md`, `spec.md`, `plan.md` |
@@ -182,23 +182,28 @@ Precedence: the project, then the most specific layer, then the core.
 
 ```json
 {
-  "extraKnownMarketplaces": {
-    "softwaregravy-sdlc": {
-      "source": { "source": "github", "repo": "softwaregravy/softwaregravy-sdlc" }
-    }
-  },
   "enabledPlugins": {
     "sdlc@softwaregravy-sdlc": true,
     "sdlc-ruby@softwaregravy-sdlc": true,
     "sdlc-rails@softwaregravy-sdlc": true
+  },
+  "extraKnownMarketplaces": {
+    "softwaregravy-sdlc": {
+      "source": {
+        "source": "github",
+        "repo": "softwaregravy/softwaregravy-sdlc"
+      },
+      "autoUpdate": true
+    }
   }
 }
 ```
 
-That file and a product-only `CLAUDE.md` are the whole required footprint.
+That file and a `CLAUDE.md` are the whole required footprint. The `CLAUDE.md` is product-only apart from one line saying that the project expects the `sdlc` plugin, so that a session on a machine without it says so before anything else. The README gives the line.
 
-- **The file lists every plugin, including the ones a layer depends on.** A file that names only the layer loads nothing: Claude Code reports the dependency as not installed. `claude plugin install <layer> --scope project` writes the full list, and `/sdlc:adopt` will do the same.
-- **Each machine registers the marketplace once per project.** A session started with no terminal did not load a marketplace the machine had never seen, even though the project's settings named it. One command fixes that: `claude plugin marketplace add <source> --scope local`, run in the project. It writes the untracked `.claude/settings.local.json`.
+- **The file lists every plugin, including the ones a layer depends on.** A file that names only the layer loads nothing: Claude Code reports the dependency as not installed. `/sdlc:adopt` will write the full list.
+- **A repo can switch a plugin on, but never install it.** Claude Code leaves installing to the person at the machine, because a plugin runs code. So each machine runs `claude plugin marketplace add softwaregravy/softwaregravy-sdlc` once, then installs each plugin with `--scope user` and disables it with `--scope user`. The plugin is installed for the user but switched off, and a project's `true` switches it on in that project alone.
+- **Updates follow the default branch.** No `version` is set, so each commit there is a new version. `autoUpdate` makes an interactive session in an opted-in project fetch it in the background, for the next session to load. Headless sessions do not update.
 
 Because nothing is enabled at user level, the skills exist only inside a repo that has opted in. Two consequences:
 
@@ -207,7 +212,7 @@ Because nothing is enabled at user level, the skills exist only inside a repo th
 
 ### 4.3 Editing skills as we go
 
-On a machine with a clone, the per-project registration in 4.2 names the clone's path as the source. Claude Code then reads the plugin files in place, so an edit takes effect at the next session or on `/reload-plugins`, with no publish step. The local registration overrides the GitHub source in the project's tracked settings and leaves that file untouched. Machines without a clone register the GitHub source and get the copy on its default branch.
+A marketplace added from a local path is read in place, so an edit takes effect at the next session or on `/reload-plugins`, with no publish step. Machines without a clone get the copy on the default branch. How a machine with a clone points its projects at the clone, now that the GitHub source is registered once per machine (4.2), is still open: issue #8 settles it.
 
 ### 4.4 The pipeline manifest
 
@@ -353,17 +358,30 @@ Tried on 2026-11-11 with Claude Code 2.1.311 on Linux, in non-interactive sessio
 | Question | Result |
 |---|---|
 | Does a plugin's session-start hook inject context? | Yes. Whatever the hook prints becomes context, for the core and the layer alike |
-| Can a project's `.claude/settings.json` enable the plugins? | Yes, once the machine knows the marketplace (4.2). A machine that had never seen it loaded nothing |
+| Can a project's `.claude/settings.json` enable the plugins? | From a local-path marketplace, yes, once the machine knows the marketplace. A machine that had never seen it loaded nothing. The GitHub source needs more (below) |
 | Does enabling a layer enable what it depends on? | Only through `claude plugin install`, which writes every plugin into the file. A hand-written file naming only the layer loaded nothing |
 | Do a local-path registration and the project's settings coexist? | Yes. The local one wins and the tracked file is untouched |
 | Do edits to a local-path marketplace take effect without a reinstall? | Yes, at the next session |
 | Can the resolver find every enabled layer's manifest? | Yes, through the session-start announcements. `/sdlc:pipeline` printed the core, the dummy layer's entry and the dummy project's overrides, each with its source |
 
+Then, the same day, against the GitHub source, from throwaway projects in headless and interactive sessions:
+
+| Question | Result |
+|---|---|
+| Does a project's settings file install the plugin? | No. It can switch a plugin on, never install it. With the settings file alone, nothing loaded, headless or interactive |
+| Does trusting the folder in an interactive session set it up? | For that session only. Trust registered the marketplace and loaded the plugin once; the next session reported `Plugin "sdlc" not cached` |
+| Does a headless session read the marketplace a project's settings declare? | No, not in a folder that has never been trusted. `claude plugin install` failed there until the marketplace was registered |
+| Is the marketplace registered per project? | No, per user. A second project installed from it without registering anything |
+| Is an install per project? | With `--scope project`, per clone: a clone that had not run it loaded nothing. With `--scope user`, once for every project |
+| Can a plugin be installed for the user but on only where a project says so? | Yes. Installed and then disabled at user scope, it loaded in a project whose settings set it `true`, and in no other folder |
+| What version is installed with no `version` field? | The default branch's commit hash, shortened to 12 characters |
+| Does `install --scope project` leave the tracked file alone? | Only if the file is already in the layout the command writes. Otherwise it reorders and reformats it, without changing what it says |
+| What does `uninstall --scope project` do to the tracked file? | It empties `enabledPlugins`, which switches the plugin off for every clone |
+| Does a line in the project's `CLAUDE.md` make a session notice a missing plugin? | Yes. With the plugin missing, the session opened by saying so and linking the setup steps. With it installed, the session said nothing about it |
+
 Not yet tried:
 
-- The same checks against the GitHub source. They need the marketplace file on the default branch.
-- With no `version` set, whether a merge to the default branch reaches projects on the next marketplace update.
-- What an interactive session shows when it opens a project whose marketplace the machine has not seen.
+- Whether a merge to the default branch reaches projects through auto-update.
 - A session launched by a service, a cloud session, and macOS. The resolver needs Python 3.11 or later, and macOS ships an older system Python.
 - A stage invoking a manifest entry that names a built-in skill or another plugin's skill. There are no stage commands yet.
 

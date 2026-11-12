@@ -104,28 +104,56 @@ Every skill listed under a review hook gets a turn. `/sdlc:pipeline` prints the 
 
 ## Opting a project in
 
-Add this to the project's `.claude/settings.json`, listing every plugin you want, including the ones a layer depends on:
+A project opts in with two tracked files. Each machine then sets the plugins up once.
+
+### In the project
+
+`.claude/settings.json` names the marketplace and switches on every plugin the project uses, including the ones a layer depends on:
 
 ```json
 {
-  "extraKnownMarketplaces": {
-    "softwaregravy-sdlc": {
-      "source": { "source": "github", "repo": "softwaregravy/softwaregravy-sdlc" }
-    }
-  },
   "enabledPlugins": {
     "sdlc@softwaregravy-sdlc": true
+  },
+  "extraKnownMarketplaces": {
+    "softwaregravy-sdlc": {
+      "source": {
+        "source": "github",
+        "repo": "softwaregravy/softwaregravy-sdlc"
+      },
+      "autoUpdate": true
+    }
   }
 }
 ```
 
-Then, once per machine, register the marketplace from inside the project:
+`CLAUDE.md` says that the project expects the plugin, so that a session on a machine without it says so instead of working without the process:
 
-```bash
-claude plugin marketplace add softwaregravy/softwaregravy-sdlc --scope local
+```markdown
+This project's development process comes from the `sdlc` plugin of softwaregravy-sdlc. A session here opens with the line `SDLC plugin active: sdlc`. If that line is missing, the plugin isn't set up on this machine: say so before anything else, and point to the setup steps at https://github.com/softwaregravy/softwaregravy-sdlc#setting-up-a-machine.
 ```
 
-To work on the skills themselves, give that command the path of a local clone instead. Claude Code then reads the plugins in place, and an edit takes effect at the next session.
+### Setting up a machine
+
+Once per machine, from any folder:
+
+```bash
+claude plugin marketplace add softwaregravy/softwaregravy-sdlc
+claude plugin install sdlc@softwaregravy-sdlc --scope user
+claude plugin disable sdlc@softwaregravy-sdlc --scope user
+```
+
+The plugin is then installed for your account but switched off, so it loads only in a project whose settings switch it on. A project's settings can switch a plugin on but can never install it: Claude Code leaves installing to you, because a plugin runs code. Each stack layer, once one exists, is set up the same way.
+
+### Updates
+
+No `version` is set, so every commit to this repo's default branch is a new version, named by its commit hash. Because the project's settings set `autoUpdate`, an interactive session in an opted-in project fetches the new version in the background, and the next session loads it. Headless sessions never update. On a machine that runs only those, run `claude plugin update sdlc@softwaregravy-sdlc --scope user`.
+
+### Two commands to avoid inside a project
+
+Run inside an opted-in project, `claude plugin uninstall --scope project` and `claude plugin marketplace remove` both empty `enabledPlugins` in the tracked settings file, which switches the plugins off for everyone. Run them from a folder outside any project, or check `git diff` afterwards.
+
+Pointing a machine's projects at a local clone, so that an edit to the skills takes effect without a merge, is not settled yet.
 
 ## License
 
