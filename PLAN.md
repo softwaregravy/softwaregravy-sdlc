@@ -381,7 +381,6 @@ Then, the same day, against the GitHub source, from throwaway projects in headle
 
 Not yet tried:
 
-- Whether a merge to the default branch reaches projects through auto-update.
 - A session launched by a service, a cloud session, and macOS. The resolver needs Python 3.11 or later, and macOS ships an older system Python.
 - A stage invoking a manifest entry that names a built-in skill or another plugin's skill. There are no stage commands yet.
 
