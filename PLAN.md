@@ -110,13 +110,15 @@ Merging the intent's PR accepts Claude's decisions along with the rest.
 │   │   └── <issue#>-<slug>/
 │   │       ├── intent.md         # PR 1
 │   │       ├── spec.md           # PR 2
-│   │       └── plan.md           # PR 3, with the code
+│   │       ├── plan.md           # PR 3, with the code
+│   │       └── research.md       # when a stage researched something, in that stage's PR
 │   └── shipped/                  # PR 3 moves the feature's folder here
 ├── .claude/settings.json         # names the marketplace and the stack plugins
 └── .sdlc/                        # optional: this project's changes to the pipeline (4.4)
 ```
 
 - **`features/active/` is the work in flight.** A feature's folder sits there from its intent PR until its code PR moves it to `features/shipped/`.
+- **`research.md` keeps what a session researched for the feature,** with its sources, so the findings outlive the session. It lands in the PR of the stage that did the research, and a later stage adds to it.
 - **Shipped folders are history.** They are not read by default.
 - **A committed document changes only through a pull request.** A later stage's PR may fix an earlier stage's document, such as the spec PR fixing `intent.md` or the code PR fixing `spec.md`, and lists each edit in its body.
 - **Living docs describe what exists.** A spec session starts from them, not from old specs. They change only in a code PR, with one exception: an ADR lands with the spec PR, because a decision is true once it is made.

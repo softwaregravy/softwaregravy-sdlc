@@ -47,7 +47,7 @@ Every pull request targets the default branch. A stage starts only when the prev
 | Spec | A merged intent | `spec.md`: requirements and design, plus a decision record for each decision made | PR 2 |
 | Build | A merged spec | `plan.md`, then code, tests and updated docs | PR 3 |
 
-The three files for one piece of work sit together in `features/active/<issue#>-<slug>/`. The code PR moves the folder to `features/shipped/`. Once committed, a file changes only through a pull request.
+A feature's files sit together in `features/active/<issue#>-<slug>/`: `intent.md`, `spec.md`, `plan.md`, and `research.md` when a stage researched something for it. The code PR moves the folder to `features/shipped/`. Once committed, a file changes only through a pull request.
 
 ## Steps
 
