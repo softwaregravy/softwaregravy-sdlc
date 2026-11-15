@@ -21,7 +21,7 @@ The model is Anthropic's AI-native SDLC playbook (https://claude.com/resources/a
 | Artifact names | The playbook's: `intent.md`, `spec.md`, `plan.md` |
 | Stages | Intent, Spec, Build. Each has the same four steps: start, do, review, finish |
 | Gates | Three pull requests per intent, against the default branch, never stacked. Every gate is the owner's merge button |
-| Feature folders | `features/active/<issue#>-<slug>/` holds a feature's documents while it is in development. The code PR moves the folder to `features/shipped/` |
+| Feature folders | `features/active/<issue#>-<slug>/` is a feature's working folder while it is in development: its named documents, and anything else a stage keeps for it. The code PR moves the folder to `features/shipped/` |
 | Committed docs | Change only through a pull request. A later stage's PR may fix an earlier stage's document, and lists each edit in its body |
 | The plan | An internal step of the Build stage, not a gate of its own. A checkpoint in an interactive session; written and then agent-reviewed in an unattended run |
 | Review feedback | The owner comments on the PR and applies `feedback-ready` when they have finished commenting |
@@ -107,17 +107,19 @@ Merging the intent's PR accepts Claude's decisions along with the rest.
 ├── docs/adr/                     # living; one file per decision
 ├── features/
 │   ├── active/
-│   │   └── <issue#>-<slug>/
+│   │   └── <issue#>-<slug>/      # the feature's working folder
 │   │       ├── intent.md         # PR 1
 │   │       ├── spec.md           # PR 2
 │   │       ├── plan.md           # PR 3, with the code
-│   │       └── research.md       # when a stage researched something, in that stage's PR
+│   │       ├── research.md       # when a stage researched something, in that stage's PR
+│   │       └── …                 # anything else a stage keeps for the feature
 │   └── shipped/                  # PR 3 moves the feature's folder here
 ├── .claude/settings.json         # names the marketplace and the stack plugins
 └── .sdlc/                        # optional: this project's changes to the pipeline (4.4)
 ```
 
 - **`features/active/` is the work in flight.** A feature's folder sits there from its intent PR until its code PR moves it to `features/shipped/`.
+- **A feature's folder is its working folder.** Beside the named files, a stage may keep anything else the feature needs there, such as notes, sketches or sample data. It all lands through a PR, like the named files.
 - **`research.md` keeps what a session researched for the feature,** with its sources, so the findings outlive the session. It lands in the PR of the stage that did the research, and a later stage adds to it.
 - **Shipped folders are history.** They are not read by default.
 - **A committed document changes only through a pull request.** A later stage's PR may fix an earlier stage's document, such as the spec PR fixing `intent.md` or the code PR fixing `spec.md`, and lists each edit in its body.
