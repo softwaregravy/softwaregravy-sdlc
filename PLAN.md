@@ -189,7 +189,7 @@ softwaregravy-sdlc/
 │       └── evals/                    # test cases for the skills
 ├── features/                         # this repo's own features: active/ and shipped/
 ├── docs/adr/  GLOSSARY.md
-├── THIRD_PARTY.md                    # each vendored skill: source, commit, license, what changed
+├── THIRD_PARTY.md                    # one line per source repo, and each license's text once
 ├── CLAUDE.md  README.md  LICENSE
 ```
 
@@ -329,7 +329,12 @@ Deferred until an issue asks for them: the subagent executor, git worktree handl
 
 ### 5.3 Vendoring rules
 
-- Every vendored skill is recorded in `THIRD_PARTY.md` with its source repo, commit and license, and a note of what changed.
+- Every repo a skill is adapted from gets one line in `THIRD_PARTY.md`: its URL, its license and copyright line, and the date of the upstream commit the skills were read from. Each license's text appears once, below the list.
+- Anything adapted from an Apache 2.0 source also needs, under the license's section 4:
+  1. the Apache text, once, in `THIRD_PARTY.md`;
+  2. the source's copyright and attribution notices, as it states them, in its line;
+  3. the contents of its `NOTICE` file, if it has one, under its line;
+  4. a line at the top of each changed file saying it was adapted, with changes, such as `<!-- Adapted from google/elephant-goldfish-model (Apache 2.0), with changes. -->`.
 - Licenses checked so far: `mattpocock/skills` MIT, `obra/superpowers` MIT, `google/elephant-goldfish-model` Apache 2.0.
 - Not vendored: superpowers' `using-superpowers` skill and its session-start text, which force a skill check before every reply.
 
@@ -447,7 +452,7 @@ To verify in phase 6: `claude-code-action` can load plugins from this marketplac
 - **The manifest works on one machine in one mode.** It rests on the session relaying each plugin's root to the resolver. If that proves unreliable, the fallback is a naming convention plus a project deny list.
 - **Volume of vendored text.** superpowers alone is about 11,000 lines. Version 0 takes a small cluster and trims it.
 - **Session-start bloat.** Every layer adds always-on text. Each `context.md` stays to a few lines; `claude plugin details` reports the token cost.
-- **Upstream drift.** Vendored skills stop receiving upstream fixes. `THIRD_PARTY.md` records the commit so a later comparison is possible.
+- **Upstream drift.** Vendored skills stop receiving upstream fixes. `THIRD_PARTY.md` records the date of the upstream commit each source was read from, not the commit itself, so a later comparison starts from that date in the upstream history.
 - **Ceremony.** Three PRs per intent is heavy for small work. Merging issues at the Intent stage is the only relief until gates are relaxed.
 - **Session pointers go stale.** A PR names the session that wrote it, but that session can be resumed only on the same host, from the same project folder, and only until Claude Code cleans up old transcripts.
 - **Live edits.** A local clone on a feature branch changes the skills every project on that machine uses.
