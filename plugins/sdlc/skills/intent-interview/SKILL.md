@@ -6,7 +6,7 @@ user-invocable: false
 
 Turn one issue into one clear intent: what the owner wants and why, written so that a spec can be built from it without going back to them. You build what you believe the owner wants, and that belief is usually thinner than it feels. The interview is how you find out.
 
-The issue number is `$ARGUMENTS`. The stage command has already created this stage's branch. If you are on the default branch, stop and say so.
+`$ARGUMENTS` is the stage and the GitHub issue number, such as `intent 12`. The stage command has already created this stage's branch. If you are on the default branch, stop and say so.
 
 ## 1. Look before asking
 
@@ -39,12 +39,12 @@ The interview is done when the frontier is empty, or when the owner says to writ
 
 Propose a split when the issue holds outcomes that could each ship and be useful alone, either at the opening or whenever the intent grows to that size. Propose a merge when another open issue wants the same outcome, or would be changed by the same work. A plain yes from the owner is enough for either.
 
-- **Split:** open a new issue for each other piece, labelled `stage:inbox`, carrying what is known about it and linking to this one. This issue keeps the piece being interviewed. Comment here with links to the new issues.
+- **Split:** open a new issue for each other piece, carrying what is known about it and linking to this one. This issue keeps the piece being interviewed. Comment here with links to the new issues.
 - **Merge:** close each other issue with a comment pointing here. Its asks become part of this interview.
 
 ## 4. Write
 
-Write `features/active/<issue#>-<slug>/intent.md` from `template.md` in this skill's base directory. The slug is a few words of the issue title, lowercase and hyphenated.
+Write `features/active/<issue#>-<slug>/intent.md` from `${CLAUDE_SKILL_DIR}/template.md`. The slug is a few words of the issue title, lowercase and hyphenated.
 
 - What the owner said goes in as theirs. Everything you filled in goes in Claude decisions: a default the owner never heard is one they couldn't reject.
 - If the session researched anything beyond the repo and the tracker, write it to `research.md` beside the intent, with its sources, so the findings outlive the session.
@@ -53,7 +53,7 @@ Show the owner the draft and ask what is wrong or missing. Apply their correctio
 
 ## 5. Fix review findings
 
-The review step hands its findings back to this session. Sort them:
+The review step hands its merged findings back to this session, once. Sort them:
 
 - **Answered already** by the interview or the project: put the answer in the intent.
 - **Minor:** a spec writer could settle it without changing what gets built. Settle it yourself, as a new Claude decision.

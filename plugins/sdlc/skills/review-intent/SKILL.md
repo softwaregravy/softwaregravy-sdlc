@@ -4,9 +4,9 @@ description: The Intent stage's review step. Check an intent.md from a fresh con
 user-invocable: false
 ---
 
-Review the intent for issue `$ARGUMENTS`, in `features/active/<issue#>-<slug>/intent.md`. You have nothing from the session that wrote it, and that is the test: the intent has to stand on its own.
+`$ARGUMENTS` is the stage and the GitHub issue number, such as `intent 12`. Review that issue's intent, in `features/active/<issue#>-<slug>/intent.md`. You have nothing from the session that wrote it, and that is the test: the intent has to stand on its own.
 
-Read the intent; the template it was written from, `../intent-interview/template.md` from this skill's base directory; the issue and its comments; and the project's `CLAUDE.md`, glossary and ADRs where they exist.
+Read the intent; the template it was written from, `${CLAUDE_SKILL_DIR}/../intent-interview/template.md`; the issue and its comments; and the project's `CLAUDE.md`, glossary and ADRs where they exist.
 
 Apply every check below. Your output is findings only: the session that wrote the intent fixes them.
 
@@ -35,7 +35,3 @@ You will write the spec from this intent, and you can't talk to the owner. Where
 ## Split
 
 - The intent holds outcomes that could each ship and be useful alone, or criteria that fall into groups sharing nothing.
-
-## Report
-
-Report each finding in the findings format the stage command gives you, most important first. When nothing important is left, say "nothing important left".
