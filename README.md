@@ -43,11 +43,11 @@ Every pull request targets the default branch. A stage starts only when the prev
 
 | Stage | Starts from | Produces | Ends with |
 |---|---|---|---|
-| Intent | A GitHub issue | `intent.md`: one clear, single-item statement of what is wanted and why | PR 1 |
+| Intent | A GitHub issue | `intent.md`: one clear statement of what is wanted and why | PR 1 |
 | Spec | A merged intent | `spec.md`: requirements and design, plus a decision record for each decision made | PR 2 |
 | Build | A merged spec | `plan.md`, then code, tests and updated docs | PR 3 |
 
-The three files for one piece of work sit together in `intent/<issue#>-<slug>/`.
+Each feature has a working folder, `features/active/<issue#>-<slug>/`. It holds `intent.md`, `spec.md`, `plan.md`, `research.md` when a stage researched something for the feature, and anything else a stage needs to keep. The code PR moves the folder to `features/shipped/`. Once committed, a file changes only through a pull request.
 
 ## Steps
 
@@ -57,7 +57,7 @@ Every stage runs the same four steps, in order.
 |---|---|---|---|
 | start | Reads the inputs and writes a plan for the stage | Read the issue, find related issues, propose a split or merge | Write `plan.md` and check it against the spec |
 | do | Produces the stage's file or code | Interview the owner, write `intent.md` | Implement the plan test-first |
-| review | Every listed reviewer checks the result in a fresh context | Is it clear, and is it a single item? | Does it meet the standards, and does it match the spec? |
+| review | Every listed reviewer checks the result in a fresh context | Is it clear, consistent and complete, and should it split? | Does it meet the standards, and does it match the spec? |
 | finish | Opens the pull request | PR 1 | PR 3 |
 
 ## Hooks

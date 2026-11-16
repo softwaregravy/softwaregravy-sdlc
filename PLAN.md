@@ -21,6 +21,8 @@ The model is Anthropic's AI-native SDLC playbook (https://claude.com/resources/a
 | Artifact names | The playbook's: `intent.md`, `spec.md`, `plan.md` |
 | Stages | Intent, Spec, Build. Each has the same four steps: start, do, review, finish |
 | Gates | Three pull requests per intent, against the default branch, never stacked. Every gate is the owner's merge button |
+| Feature folders | `features/active/<issue#>-<slug>/` is a feature's working folder while it is in development: its named documents, and anything else a stage keeps for it. The code PR moves the folder to `features/shipped/` |
+| Committed docs | Change only through a pull request. A later stage's PR may fix an earlier stage's document, and lists each edit in its body |
 | The plan | An internal step of the Build stage, not a gate of its own. A checkpoint in an interactive session; written and then agent-reviewed in an unattended run |
 | Review feedback | The owner comments on the PR and applies `feedback-ready` when they have finished commenting |
 | Organising skills | A pipeline manifest lists the skills that run in each step. Layers and projects add, remove or replace entries |
@@ -52,8 +54,10 @@ The model is Anthropic's AI-native SDLC playbook (https://claude.com/resources/a
 |---|---|---|---|
 | Start | Reads the inputs and writes a plan for the stage | Read the issue, find related issues, propose a split or merge, list what to ask | Write `plan.md` and have reviewers check it against the spec |
 | Do | Produces the stage's artifact | Interview the owner, write `intent.md` | Implement the plan test-first |
-| Review | Every listed reviewer checks the artifact in a fresh context | Is it clear, and is it a single item? | Does it meet the standards, and does it match the spec? |
+| Review | Every listed reviewer checks the artifact in a fresh context | Is it clear, consistent and complete, and should it split? | Does it meet the standards, and does it match the spec? |
 | Finish | Opens the PR | PR 1 | PR 3 |
+
+Every PR body names the host and session id that wrote it, so the owner can resume that session with `claude --resume`.
 
 For Intent and Spec the start step's plan is a few lines posted as a comment on the issue, and needs no approval. For Build it is `plan.md`, committed as the first commit on the build branch:
 
@@ -64,19 +68,33 @@ For Intent and Spec the start step's plan is a few lines posted as a comment on 
 
 **Capture.** File an issue with whatever is known. No template is required.
 
-**Intent.** An interview turns one issue into one clear, single-item intent. "Single item" means it can ship as one code PR that the owner can review in one sitting. The stage may:
+**Intent.** An interview turns one issue into one clear intent. Claude reads the issue, related issues and the repo before asking anything. It asks one open question about why, then asks in rounds, each question with a recommended answer. The stage may:
 
 - split an issue into several, each linked to the original;
 - merge related issues into one, closing the others with a pointer.
 
-It writes `intent.md` (author, status, problem, proposed outcome, affected users and systems, constraints, open questions).
+Claude suggests a split when an intent grows too big. A plain yes from the owner is enough for a split or a merge.
+
+It writes `intent.md` with seven sections, each always present. A section with nothing in it says *None*.
+
+| Section | Holds |
+|---|---|
+| Problem | One specific story: who hits what, why today doesn't work, and why now |
+| Proposed outcome | What is true once it ships, as observable behaviour, not design |
+| Resources impacted | Repos, services, systems and data that may need changes |
+| Constraints | What the spec must respect or must not change |
+| Acceptance criteria | Results the owner can check without knowing the implementation |
+| Out of scope | Near-misses a reader might assume are included, each with a reason |
+| Claude decisions | Numbered, so a reviewer can point at one: each open question with Claude's answer, and each call Claude made that the owner didn't state |
+
+Merging the intent's PR accepts Claude's decisions along with the rest.
 
 **Spec.** Reads the project `CLAUDE.md`, the living docs it points to, the intent, the code, and the defaults of every enabled layer. It questions the owner on the decisions that are theirs, applies layer defaults without asking, and writes `spec.md`. The spec carries two required sections:
 
 - **Deviations from defaults:** each one becomes a project ADR in this PR.
 - **Living-doc changes:** what the code PR will change in `CLAUDE.md`, the glossary and the architecture overview.
 
-**Build.** Writes and checks `plan.md` (tasks with exact files, interfaces and tests), then executes it test-first without pausing. Every judgment call is recorded as a ruling and listed in the PR. It applies the living-doc changes the spec listed and sets the intent's status to implemented. Reviewers then check the branch; critical and important findings are fixed in one pass. The PR body lists the rulings, deferred findings and pasted verification output.
+**Build.** Writes and checks `plan.md` (tasks with exact files, interfaces and tests), then executes it test-first without pausing. Every judgment call is recorded as a ruling and listed in the PR. It applies the living-doc changes the spec listed, and moves the feature's folder from `features/active/` to `features/shipped/`. Reviewers then check the branch; critical and important findings are fixed in one pass. The PR body lists the rulings, any edits to the intent or the spec, deferred findings and pasted verification output.
 
 **Maintain.** Defined but empty. Its only rule for now: an alert or a support request becomes an issue.
 
@@ -87,16 +105,24 @@ It writes `intent.md` (author, status, problem, proposed outcome, affected users
 ├── CLAUDE.md                     # what the product is, its invariants, its commands. No process
 ├── GLOSSARY.md                   # living; created when a term is first settled
 ├── docs/adr/                     # living; one file per decision
-├── intent/
-│   └── <issue#>-<slug>/
-│       ├── intent.md             # PR 1
-│       ├── spec.md               # PR 2
-│       └── plan.md               # PR 3, with the code
+├── features/
+│   ├── active/
+│   │   └── <issue#>-<slug>/      # the feature's working folder
+│   │       ├── intent.md         # PR 1
+│   │       ├── spec.md           # PR 2
+│   │       ├── plan.md           # PR 3, with the code
+│   │       ├── research.md       # when a stage researched something, in that stage's PR
+│   │       └── …                 # anything else a stage keeps for the feature
+│   └── shipped/                  # PR 3 moves the feature's folder here
 ├── .claude/settings.json         # names the marketplace and the stack plugins
 └── .sdlc/                        # optional: this project's changes to the pipeline (4.4)
 ```
 
-- **Per-intent folders are history.** They are frozen once merged and are not read by default.
+- **`features/active/` is the work in flight.** A feature's folder sits there from its intent PR until its code PR moves it to `features/shipped/`.
+- **A feature's folder is its working folder.** Beside the named files, a stage may keep anything else the feature needs there, such as notes, sketches or sample data. It all lands through a PR, like the named files.
+- **`research.md` keeps what a session researched for the feature,** with its sources, so the findings outlive the session. It lands in the PR of the stage that did the research, and a later stage adds to it.
+- **Shipped folders are history.** They are not read by default.
+- **A committed document changes only through a pull request.** A later stage's PR may fix an earlier stage's document, such as the spec PR fixing `intent.md` or the code PR fixing `spec.md`, and lists each edit in its body.
 - **Living docs describe what exists.** A spec session starts from them, not from old specs. They change only in a code PR, with one exception: an ADR lands with the spec PR, because a decision is true once it is made.
 - **An architecture overview** is added the first time a project's `CLAUDE.md` outgrows a page.
 
@@ -107,10 +133,10 @@ No separate tracker. State is read from the default branch:
 | What is on the default branch | State |
 |---|---|
 | Issue only | Captured |
-| `intent.md` | Intent approved, awaiting spec |
-| `intent.md` and `spec.md` | Spec approved, awaiting build |
+| `intent.md` in `features/active/` | Intent approved, awaiting spec |
+| `intent.md` and `spec.md` in `features/active/` | Spec approved, awaiting build |
 | The above plus an open PR carrying `plan.md` | In build |
-| `intent.md` with `status: implemented` | Done |
+| The feature's folder in `features/shipped/` | Done |
 
 The issue stays open as the tracking issue. Every PR references it and PR 3 closes it. Each stage refuses to start unless the previous stage's file is on the default branch, which is also the check that the previous PR really landed there.
 
@@ -158,7 +184,7 @@ softwaregravy-sdlc/
 │       ├── standards.md              # judgment rules the reviewers enforce
 │       ├── defaults/                 # reusable decisions that apply to every project
 │       └── evals/                    # test cases for the skills
-├── intent/                           # this repo's own intents
+├── features/                         # this repo's own features: active/ and shipped/
 ├── docs/adr/  GLOSSARY.md
 ├── THIRD_PARTY.md                    # each vendored skill: source, commit, license, what changed
 ├── CLAUDE.md  README.md  LICENSE
@@ -264,7 +290,7 @@ Still to add in phase 2: per-stage rule files under `.sdlc/`, for a project that
 | Any time | `/sdlc:pipeline` | Print the effective pipeline for this repo |
 | Any time | `/sdlc:feedback` | File an issue on the SDLC repo from any project |
 | Setup | `/sdlc:new-repo` | Create a repo, push, protect the default branch, opt it in |
-| Setup | `/sdlc:adopt` | Opt an existing repo in: settings file, labels, the ranked Project, the `intent/` folder |
+| Setup | `/sdlc:adopt` | Opt an existing repo in: settings file, labels, the ranked Project, the `features/` folders |
 
 Every command takes an issue or PR number and reads its state from GitHub and the default branch. What triggers a command can therefore change later without changing the command.
 
@@ -395,4 +421,5 @@ To verify in phase 6: `claude-code-action` can load plugins from this marketplac
 - **Session-start bloat.** Every layer adds always-on text. Each `context.md` stays to a few lines; `claude plugin details` reports the token cost.
 - **Upstream drift.** Vendored skills stop receiving upstream fixes. `THIRD_PARTY.md` records the commit so a later comparison is possible.
 - **Ceremony.** Three PRs per intent is heavy for small work. Merging issues at the Intent stage is the only relief until gates are relaxed.
+- **Session pointers go stale.** A PR names the session that wrote it, but that session can be resumed only on the same host, from the same project folder, and only until Claude Code cleans up old transcripts.
 - **Live edits.** A local clone on a feature branch changes the skills every project on that machine uses.
