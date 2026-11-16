@@ -52,14 +52,16 @@ The model is Anthropic's AI-native SDLC playbook (https://claude.com/resources/a
 
 | Step | What it does | Intent example | Build example |
 |---|---|---|---|
-| Start | Reads the inputs and writes a plan for the stage | Read the issue, find related issues, propose a split or merge, list what to ask | Write `plan.md` and have reviewers check it against the spec |
-| Do | Produces the stage's artifact | Interview the owner, write `intent.md` | Implement the plan test-first |
+| Start | Reads the inputs and writes a plan for the stage | Nothing in the core | Write `plan.md` and have reviewers check it against the spec |
+| Do | Produces the stage's artifact | Read the issue, related issues and the repo, propose a split or merge, interview the owner, write `intent.md` | Implement the plan test-first |
 | Review | Every listed reviewer checks the artifact in a fresh context | Is it clear, consistent and complete, and should it split? | Does it meet the standards, and does it match the spec? |
 | Finish | Opens the PR | PR 1 | PR 3 |
 
 Every PR body names the host and session id that wrote it, so the owner can resume that session with `claude --resume`.
 
-For Intent and Spec the start step's plan is a few lines posted as a comment on the issue, and needs no approval. For Build it is `plan.md`, committed as the first commit on the build branch:
+Intent's start step is empty in the core. A plan would hand nothing on: the interview runs straight after it in the same session, with everything the reading found already in context, and Intent never runs unattended. If a later phase runs that reading unattended on new issues, a plan posted to the issue becomes a real handoff, and Intent gets a start skill.
+
+For Spec the start step's plan is a few lines posted as a comment on the issue, and needs no approval. For Build it is `plan.md`, committed as the first commit on the build branch:
 
 - **Interactive session:** the plan is a checkpoint. The session shows it and waits for the owner.
 - **Unattended run:** the plan is written, then reviewed by agents, and the build continues.
@@ -262,6 +264,7 @@ replace = { "sdlc:review-against-spec" = "strict-spec-review" }
 ```
 
 - **The core ships the default manifest**, `pipeline.toml` at the plugin root. Every step is empty until its skills exist.
+- **An empty step stays in the manifest, and does nothing.** `add` appends to a step's list, so a skill that must run before a step's core skills goes in the step before it. That is why Intent keeps an empty `start`.
 - **A layer adds entries** in its own `pipeline.toml`. A Rails layer could add a migration reviewer to `build.review`.
 - **A project overrides** in `.sdlc/pipeline.toml`: it adds a skill of its own, replaces an entry, removes one, or empties a step.
 - **Entries are skill names exactly as they are invoked**, so they can name skills from elsewhere: a Claude Code built-in such as `security-review`, or a skill from another installed plugin.
@@ -298,8 +301,8 @@ Every command takes an issue or PR number and reads its state from GitHub and th
 
 | Stage | Step | Skill | Built from |
 |---|---|---|---|
-| Intent | Start | `intent-start` | New. Includes split and merge |
-| Intent | Do | `intent-interview`, `intent-write` | superpowers `brainstorming`, trimmed |
+| Intent | Start | None | |
+| Intent | Do | `intent-interview` | superpowers `brainstorming`, trimmed. Split and merge are new |
 | Intent | Review | `review-intent` | superpowers' builder check |
 | Spec | Start | `spec-start` | New |
 | Spec | Do | `spec-grill`, `spec-write` | mattpocock `grilling`, `to-spec` template, `domain-modeling` |
