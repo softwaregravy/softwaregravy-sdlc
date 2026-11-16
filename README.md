@@ -4,7 +4,7 @@ A software development lifecycle packaged as Claude Code skills. A project opts 
 
 It follows Anthropic's [AI-native SDLC playbook](https://claude.com/resources/articles/the-ai-native-sdlc-playbook).
 
-**Status: early.** The stage commands and `pr-open` exist. The stages' own skills don't yet, so most of the hooks below are empty. [`PLAN.md`](PLAN.md) holds the design, the decisions and the phases.
+**Status: early.** The stage commands, `pr-open` and the Intent stage's skills exist. Spec and Build have no skills of their own yet, so their hooks below are empty apart from `pr-open`. [`PLAN.md`](PLAN.md) holds the design, the decisions and the phases.
 
 ## How work flows
 
@@ -64,7 +64,7 @@ Every stage runs the same four steps, in order.
 
 A hook is one step of one stage, named `<stage>.<step>`. There are twelve. A skill runs because a manifest lists it under a hook; a hook with nothing listed does nothing.
 
-The skills below are the core's planned defaults. Only `pr-open` exists so far.
+The skills below are the core's planned defaults. `intent-interview`, `review-intent` and `pr-open` exist so far.
 
 | Hook | Planned core skills |
 |---|---|

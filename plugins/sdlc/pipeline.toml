@@ -7,8 +7,8 @@
 
 [intent]
 start = []
-do = []
-review = []
+do = ["sdlc:intent-interview"]
+review = ["sdlc:review-intent"]
 finish = ["sdlc:pr-open"]
 
 [spec]
