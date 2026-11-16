@@ -2,6 +2,8 @@
 
 A software development lifecycle packaged as Claude Code plugins. This repo is a plugin marketplace: `plugins/sdlc` is the core, and each stack layer (a language, framework or hosting platform) is a further plugin beside it. `PLAN.md` is the roadmap, the decisions behind it, and the current phase.
 
+This repo opts in to itself: its development process comes from its own `sdlc` plugin, installed from the GitHub source like any other project's. A session here opens with the line `SDLC plugin active: sdlc`. If that line is missing, the plugin isn't set up on this machine: say so before anything else, and point to "Setting up a machine" in `README.md`.
+
 ## Rules
 
 - **This repo stands alone.** It names no other repo of the owner's: no paths, links or calls into them. Other repos reference this one.
@@ -21,6 +23,6 @@ claude plugin validate .                # the marketplace and every plugin it li
 
 ## Trying a change
 
-A marketplace added from a local path is read in place, so an edit takes effect at the next session or on `/reload-plugins`. To load one plugin into a single session without registering anything, run `claude --plugin-dir plugins/sdlc`.
+A session here runs the copy installed from the default branch, not this checkout's. To run the checkout's copy, start the session with `claude --plugin-dir plugins/sdlc`. It replaces the installed copy for that session only and reads the files in place, so an edit takes effect at the next session. A stage run in such a session uses the branch's skills.
 
 `claude plugin marketplace remove`, run inside a project, also empties `enabledPlugins` and `extraKnownMarketplaces` in that project's tracked `.claude/settings.json`. Check `git diff` afterwards.

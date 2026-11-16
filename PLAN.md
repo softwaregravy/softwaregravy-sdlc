@@ -241,7 +241,9 @@ Because nothing is enabled at user level, the skills exist only inside a repo th
 
 ### 4.3 Editing skills as we go
 
-A marketplace added from a local path is read in place, so an edit takes effect at the next session or on `/reload-plugins`, with no publish step. Machines without a clone get the copy on the default branch. How a machine with a clone points its projects at the clone, now that the GitHub source is registered once per machine (4.2), is still open: issue #8 settles it.
+Every machine registers the GitHub source (4.2), whether or not it has a clone, so every project runs the copy on the default branch. This repo opts in to itself with the same settings file as any other project, so a session here runs the merged pipeline too.
+
+To try an edit before it merges, start a session in the checkout with `claude --plugin-dir plugins/sdlc`. That session loads the checkout's copy in place of the installed one and reads it in place, so an edit takes effect at the next session, with no publish step. Only that session is affected: other worktrees and other projects keep the installed copy. A stage run in such a session uses the branch's skills.
 
 ### 4.4 The pipeline manifest
 
@@ -445,6 +447,16 @@ Then, on 2026-11-16 with Claude Code 2.1.311 on Linux, headless: `/sdlc:intent` 
 | Does `security-review` run in any repo? | Only where `origin/HEAD` is set. A clone sets it; a repo set up with `git init` and `git remote add`, like the one the trial ran from, doesn't |
 | Do the checks stop a stage early enough? | A re-run with the stage's branch present, and Spec with no `intent.md` on the default branch, both stopped before changing anything |
 
+Then, the same day and version, headless, in a worktree of this repo with the settings file from 4.2 (#8). The machine had the GitHub source registered and `sdlc` installed and disabled at user scope:
+
+| Question | Result |
+|---|---|
+| What loads in a repo whose settings name itself as the marketplace? | The cached copy from the GitHub source, as in any other project. The repo's own `plugins/` folder is not read |
+| What does `--plugin-dir plugins/sdlc` do beside the enabled plugin? | It replaces it. One `sdlc` loaded, from the checkout, and its session-start hook ran once. `/sdlc:pipeline` resolved the checkout's manifest |
+| Does an uncommitted edit take effect under `--plugin-dir`? | Yes. A line added to `context.md` reached the next session |
+| Does the plugin stay off in a folder that hasn't opted in? | Yes |
+| Does a session in an opted-in project change the machine's registration? | It copies the project's `autoUpdate: true` into the per-user registration, which then applies to every project. Nothing else changed |
+
 To verify in phase 6: `claude-code-action` can load plugins from this marketplace.
 
 ## 12. Risks
@@ -455,4 +467,3 @@ To verify in phase 6: `claude-code-action` can load plugins from this marketplac
 - **Upstream drift.** Vendored skills stop receiving upstream fixes. `THIRD_PARTY.md` records the date of the upstream commit each source was read from, not the commit itself, so a later comparison starts from that date in the upstream history.
 - **Ceremony.** Three PRs per intent is heavy for small work. Merging issues at the Intent stage is the only relief until gates are relaxed.
 - **Session pointers go stale.** A PR names the session that wrote it, but that session can be resumed only on the same host, from the same project folder, and only until Claude Code cleans up old transcripts.
-- **Live edits.** A local clone on a feature branch changes the skills every project on that machine uses.

@@ -161,7 +161,9 @@ No `version` is set, so every commit to this repo's default branch is a new vers
 
 Run inside an opted-in project, `claude plugin uninstall --scope project` and `claude plugin marketplace remove` both empty `enabledPlugins` in the tracked settings file, which switches the plugins off for everyone. Run them from a folder outside any project, or check `git diff` afterwards.
 
-Pointing a machine's projects at a local clone, so that an edit to the skills takes effect without a merge, is not settled yet.
+### Trying an edit to the skills
+
+A machine with a clone of this repo is set up the same way, so every project runs the copy on the default branch, this repo included: it opts in to itself. To try an edit before it merges, start a session in your checkout with `claude --plugin-dir plugins/sdlc`. That session loads the checkout's copy in place of the installed one, and no other session or project is affected.
 
 ## License
 

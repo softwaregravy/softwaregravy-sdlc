@@ -1,0 +1,14 @@
+{
+  "enabledPlugins": {
+    "sdlc@softwaregravy-sdlc": true
+  },
+  "extraKnownMarketplaces": {
+    "softwaregravy-sdlc": {
+      "source": {
+        "source": "github",
+        "repo": "softwaregravy/softwaregravy-sdlc"
+      },
+      "autoUpdate": true
+    }
+  }
+}
