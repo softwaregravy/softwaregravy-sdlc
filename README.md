@@ -55,8 +55,8 @@ Every stage runs the same four steps, in order.
 
 | Step | What it does | In Intent | In Build |
 |---|---|---|---|
-| start | Reads the inputs and writes a plan for the stage | Read the issue, find related issues, propose a split or merge | Write `plan.md` and check it against the spec |
-| do | Produces the stage's file or code | Interview the owner, write `intent.md` | Implement the plan test-first |
+| start | Reads the inputs and writes a plan for the stage | Nothing in the core | Write `plan.md` and check it against the spec |
+| do | Produces the stage's file or code | Read the issue and the repo, propose a split or merge, interview the owner, write `intent.md` | Implement the plan test-first |
 | review | Every listed reviewer checks the result in a fresh context | Is it clear, consistent and complete, and should it split? | Does it meet the standards, and does it match the spec? |
 | finish | Opens the pull request | PR 1 | PR 3 |
 
@@ -68,8 +68,8 @@ The skills below are the core's planned defaults. None exists yet.
 
 | Hook | Planned core skills |
 |---|---|
-| `intent.start` | `intent-start` |
-| `intent.do` | `intent-interview`, `intent-write` |
+| `intent.start` | None |
+| `intent.do` | `intent-interview` |
 | `intent.review` | `review-intent` |
 | `intent.finish` | `pr-open` |
 | `spec.start` | `spec-start` |
