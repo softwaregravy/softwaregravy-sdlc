@@ -26,9 +26,10 @@ The model is Anthropic's AI-native SDLC playbook (https://claude.com/resources/a
 | The plan | An internal step of the Build stage, not a gate of its own. A checkpoint in an interactive session; written and then agent-reviewed in an unattended run |
 | Review feedback | The owner comments on the PR and applies `feedback-ready` when they have finished commenting |
 | Organising skills | A pipeline manifest lists the skills that run in each step. Layers and projects add, remove or replace entries |
+| Step skills | Ordinary skills marked `user-invocable: false`: hidden from the `/` menu, and invoked by name by the stage commands. Each costs one line of context in every session of an opted-in repo |
 | Driving runs | Interactive sessions to start with: the owner runs each stage with a slash command. Automatic triggers come later |
 | End of a run | A reviewed PR. The owner merges |
-| Issue labels | One stage label per issue, plus `needs-info` and `wontfix` |
+| Issue labels | Calls for action only: `feedback-ready`, `needs-info` and `wontfix`. No label says where work stands |
 | Queue order | A GitHub Project per repo with a numeric Rank field |
 | Stack layers | One per language, framework and hosting platform, plus combinations when needed. All start empty; nothing is seeded |
 | Self-improvement | A change to the SDLC starts as an issue on this repo and goes through the SDLC's own pipeline |
@@ -42,7 +43,7 @@ The model is Anthropic's AI-native SDLC playbook (https://claude.com/resources/a
 
 | Stage (playbook name) | Starts from | Produces | Gate |
 |---|---|---|---|
-| Capture | Any idea, bug, alert or support request | A GitHub issue labelled `stage:inbox`. The bar is low | None |
+| Capture | Any idea, bug, alert or support request | A GitHub issue. The bar is low | None |
 | Intent (Plan) | An issue | `intent.md` | The owner merges PR 1 |
 | Spec (Design) | An approved intent on the default branch | `spec.md` and any ADRs | The owner merges PR 2 |
 | Build (Build, Test, Deploy) | An approved spec on the default branch | `plan.md`, code, tests, living-doc updates | The owner merges PR 3 |
@@ -142,6 +143,8 @@ No separate tracker. State is read from the default branch:
 
 The issue stays open as the tracking issue. Every PR references it and PR 3 closes it. Each stage refuses to start unless the previous stage's file is on the default branch, which is also the check that the previous PR really landed there.
 
+When a stage starts, it comments on the issue with the stage, its branch, and the host and session running it. The comment is news for whoever watches the issue, not state.
+
 ### 3.5 The review loop on every PR
 
 GitHub does not let an author approve their own PR, and Claude pushes as the owner, so approval is never a GitHub review. It is always the merge.
@@ -156,16 +159,13 @@ In an interactive session the owner can also just say they are done commenting, 
 
 ### 3.6 Issue labels and the queue
 
+Labels call for action. None says where work stands: that is read from the default branch and the open PRs (3.4).
+
 | Label | Meaning |
 |---|---|
-| `stage:inbox` | Captured, not yet clarified |
-| `stage:intent` | Intent being written or in PR 1 |
-| `stage:spec` | Intent approved; spec being written or in PR 2 |
-| `stage:build` | Spec approved; build in progress or in PR 3 |
+| `feedback-ready` | On a PR: the owner has finished commenting (3.5) |
 | `needs-info` | Waiting on an answer |
 | `wontfix` | Will not be done |
-
-Labels are a view that each stage keeps current. The default branch remains the truth (3.4).
 
 Order comes from a GitHub Project per repo with a numeric **Rank** field in gaps of ten, lowest first. The board is for ordering only. `/sdlc:status` lists open work by rank and names the next item.
 
@@ -178,9 +178,10 @@ softwaregravy-sdlc/
 │   └── sdlc/                         # the core plugin
 │       ├── .claude-plugin/plugin.json
 │       ├── pipeline.toml             # the default manifest: which skills run in each step (4.4)
+│       ├── stage.md                  # the steps every stage command shares (4.5)
 │       ├── scripts/                  # the manifest resolver
 │       ├── skills/                   # one folder per skill, scripts inside
-│       ├── agents/                   # reviewer agents
+│       ├── agents/                   # the reviewer agent, which runs one review skill in a fresh context
 │       ├── hooks/                    # session-start context; guards later
 │       ├── context.md                # the always-on rules, under a page
 │       ├── standards.md              # judgment rules the reviewers enforce
@@ -267,9 +268,9 @@ replace = { "sdlc:review-against-spec" = "strict-spec-review" }
 - **An empty step stays in the manifest, and does nothing.** `add` appends to a step's list, so a skill that must run before a step's core skills goes in the step before it. That is why Intent keeps an empty `start`.
 - **A layer adds entries** in its own `pipeline.toml`. A Rails layer could add a migration reviewer to `build.review`.
 - **A project overrides** in `.sdlc/pipeline.toml`: it adds a skill of its own, replaces an entry, removes one, or empties a step.
-- **Entries are skill names exactly as they are invoked**, so they can name skills from elsewhere: a Claude Code built-in such as `security-review`, or a skill from another installed plugin.
+- **Entries are skill names exactly as they are invoked**, so they can name skills from elsewhere: a Claude Code built-in such as `security-review`, or a skill from another installed plugin. A skill marked `disable-model-invocation` can't be an entry, since only a person can run it.
 - **Removing or replacing an entry that is not there is an error.** An override cannot silently stop applying when the skill it names is renamed upstream.
-- **Every reviewer gets a turn.** The review step runs each listed reviewer in a fresh context. All report findings in one common format (severity, location, claim, evidence). The findings are then merged, re-graded and fixed in one pass.
+- **Every reviewer gets a turn.** The review step runs each listed reviewer in a fresh context. All report findings in one common format (severity, location, claim, evidence). The findings are then merged and fixed in one pass (4.5).
 - **Small shared skills** such as `pr-open` and `pr-respond` are written once and listed wherever they are used.
 
 A small script, `scripts/resolve_pipeline.py`, resolves core, layers and project into the effective pipeline, so the result does not depend on a model reading several files correctly. It applies each plugin after the plugins it depends on, then the project. `/sdlc:pipeline` prints the effective pipeline for the current repo and says where each entry came from.
@@ -277,6 +278,17 @@ A small script, `scripts/resolve_pipeline.py`, resolves core, layers and project
 The script finds the layers through the session: each SDLC plugin's session-start hook prints its name and root, and the skill passes those roots to the script. Only enabled plugins run their hooks, so Claude Code decides which layers are active.
 
 Still to add in phase 2: per-stage rule files under `.sdlc/`, for a project that wants to add a rule to a stage without writing a skill.
+
+### 4.5 The stage commands
+
+`/sdlc:intent`, `/sdlc:spec` and `/sdlc:build` each take a GitHub issue number and follow one shared file, `stage.md`:
+
+1. **Check,** and stop at the first failure: the issue is open, the working tree is clean, the previous stage's file is on the default branch, and the stage's branch, `<stage>/<issue#>`, doesn't exist yet.
+2. **Resolve** the effective pipeline with the resolver.
+3. **Start** the branch from the default branch, and comment on the issue (3.4).
+4. **Run** start, do, review and finish, in that order. Every skill gets the stage and the issue number as its arguments, such as `intent 12`.
+
+Start, do and finish run in the command's session, one skill after another, because each builds on what came before. Review runs once, with each skill in its own `sdlc:reviewer` agent: a fresh context with read-only tools, which gives the skill the common findings format, so a review skill says only what it checks. The findings are merged and handed back to the session, which fixes them as the do step's skills say. If none says, it fixes critical and important findings and lists the minor ones in the PR.
 
 ## 5. Commands and skills, version 0
 
@@ -375,10 +387,12 @@ Phases 1 and 2 are built with ordinary single-concern PRs, because the pipeline 
 
 These are easy to change:
 
-1. **Label names:** `feedback-ready`, and the `stage:` set in 3.6.
+1. **Label names:** `feedback-ready`, `needs-info` and `wontfix` (3.6).
 2. **A label, not a special comment,** for "I have finished commenting", because labels can be listed and are two taps on a phone.
 3. **`.sdlc/`** as the folder for a project's pipeline overrides.
 4. **Skill names** in 5.2.
+5. **Stage branch names:** `<stage>/<issue#>`, such as `intent/12`.
+6. **Severity grades:** critical, important and minor, as `agents/reviewer.md` defines them.
 
 ## 11. Phase 1 findings
 
@@ -411,9 +425,20 @@ Then, the same day, against the GitHub source, from throwaway projects in headle
 Not yet tried:
 
 - A session launched by a service, a cloud session, and macOS. The resolver needs Python 3.11 or later, and macOS ships an older system Python.
-- A stage invoking a manifest entry that names a built-in skill or another plugin's skill. There are no stage commands yet.
 
-To settle in phase 2: a skill with `disable-model-invocation` can be run only by a person typing its name, so a stage command cannot invoke it. Step skills must either stay model-invocable, which costs a line of context each in every session, or be plain files that the stage command reads.
+Settled in phase 2 (#3): a skill with `disable-model-invocation` can be run only by a person typing its name, so step skills are marked `user-invocable: false` instead (section 2).
+
+Then, on 2026-11-16 with Claude Code 2.1.311 on Linux, headless: `/sdlc:intent` on a throwaway issue (#21) in a scratch worktree, with test skills from a second plugin at every step and the built-in `security-review` as a second reviewer:
+
+| Question | Result |
+|---|---|
+| Are `${CLAUDE_PLUGIN_ROOT}`, `${CLAUDE_SKILL_DIR}` and `${CLAUDE_SESSION_ID}` filled into a skill's text? | Yes, all three, but not into a file the skill reads. So each stage command passes the plugin root and the session id on to `stage.md` |
+| Can a stage invoke a `user-invocable: false` skill from another plugin? | Yes, by name with the Skill tool, with `intent 21` as its arguments |
+| Can a reviewer agent invoke a skill? | Yes. `sdlc:reviewer`, with the Skill tool among its tools, ran another plugin's `user-invocable: false` skill and the built-in `security-review` |
+| Does the review run once? | Only once `stage.md` said so plainly. "Go on to finish when every reviewer reports no findings" read as a loop, and the review ran three times |
+| Can a reviewer whose skill failed look clean? | It did: `security-review` failed to load and the reviewer replied `No findings.` It now replies `Review did not run`, and the stage lists that in the PR |
+| Does `security-review` run in any repo? | Only where `origin/HEAD` is set. A clone sets it; a repo set up with `git init` and `git remote add`, like the one the trial ran from, doesn't |
+| Do the checks stop a stage early enough? | A re-run with the stage's branch present, and Spec with no `intent.md` on the default branch, both stopped before changing anything |
 
 To verify in phase 6: `claude-code-action` can load plugins from this marketplace.
 

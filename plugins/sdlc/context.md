@@ -7,4 +7,4 @@ Pull requests:
 - After opening a pull request, stop and report its URL. The owner merges.
 - After a merge, confirm the commit reached the default branch with `git merge-base --is-ancestor <sha> origin/<default-branch>`. GitHub shows "Merged" for a pull request that landed in some other branch.
 
-`/sdlc:pipeline` prints the skills that run in each stage of this repo.
+The owner runs each stage by typing `/sdlc:intent`, `/sdlc:spec` or `/sdlc:build` with a GitHub issue number. `/sdlc:pipeline` prints the skills that run in each stage of this repo.
