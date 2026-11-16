@@ -64,7 +64,7 @@ Every stage runs the same four steps, in order.
 
 A hook is one step of one stage, named `<stage>.<step>`. There are twelve. A skill runs because a manifest lists it under a hook; a hook with nothing listed does nothing.
 
-The skills below are the core's planned defaults. None exists yet.
+The skills below are the core's planned defaults. Only `pr-open` exists so far.
 
 | Hook | Planned core skills |
 |---|---|
