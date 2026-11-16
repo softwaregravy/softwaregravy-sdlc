@@ -139,6 +139,14 @@ class CoreManifestTest(unittest.TestCase):
                         self.assertTrue((CORE / "skills" / skill / "SKILL.md").is_file(),
                                         f"{stage}.{step} names {entry['skill']}, which has no SKILL.md")
 
+    def test_every_stage_has_a_command_that_follows_the_shared_steps(self):
+        for stage in rp.STAGES:
+            text = (CORE / "skills" / stage / "SKILL.md").read_text()
+            self.assertIn("disable-model-invocation: true", text, stage)
+            self.assertIn("${CLAUDE_PLUGIN_ROOT}/stage.md", text, stage)
+            self.assertIn(f"**S**, the stage: `{stage}`", text, stage)
+        self.assertTrue((CORE / "stage.md").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

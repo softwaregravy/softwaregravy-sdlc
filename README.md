@@ -4,7 +4,7 @@ A software development lifecycle packaged as Claude Code skills. A project opts 
 
 It follows Anthropic's [AI-native SDLC playbook](https://claude.com/resources/articles/the-ai-native-sdlc-playbook).
 
-**Status: early.** The core plugin is a walking skeleton: the hooks below exist and are all empty. [`PLAN.md`](PLAN.md) holds the design, the decisions and the phases.
+**Status: early.** The stage commands and `pr-open` exist. The stages' own skills don't yet, so most of the hooks below are empty. [`PLAN.md`](PLAN.md) holds the design, the decisions and the phases.
 
 ## How work flows
 
@@ -95,6 +95,14 @@ remove = ["sdlc:review-standards"]
 ```
 
 Every skill listed under a review hook gets a turn. `/sdlc:pipeline` prints the hooks for the current repo and says which manifest each skill came from.
+
+## Running a stage
+
+Type `/sdlc:intent <issue>`, `/sdlc:spec <issue>` or `/sdlc:build <issue>`, with the number of a GitHub issue. The command first checks three things: the working tree is clean, the previous stage's file is on the default branch, and the stage hasn't started already. Then it creates the branch `<stage>/<issue>`, comments on the issue that the stage has started, and runs the stage's four hooks in order. Every skill gets the stage and the issue number as its arguments, such as `intent 12`.
+
+Start, do and finish run in your session. Each review skill runs once, in a fresh context, and reports findings in a common format. The findings go back to your session to be fixed, and the stage goes on to open the pull request.
+
+A skill marked `disable-model-invocation` can't be listed under a hook, because only a person can run it.
 
 ## How it is organised
 
